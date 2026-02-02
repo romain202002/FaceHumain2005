@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FaceHumain 2005 - V0.1</title>
+<style>
+body{font-family:Tahoma;background:#e4e6eb;margin:0;padding:0}
+header{background:#3b5998;color:#fff;padding:8px;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between}
+header input{flex:1;margin:4px 0;padding:6px;font-size:14px}
+.nav-icons span{margin-left:6px;cursor:pointer;color:#fff;font-weight:bold;font-size:14px}
+.wrap{display:flex;flex-direction:column;padding:4px}
+.left, .center{width:100%;padding:4px}
+.box{background:#fff;border:1px solid #c3c3c3;margin-bottom:6px;padding:6px;border-radius:4px}
+.input{width:100%;padding:6px;margin:4px 0;font-size:14px}
+.btn{background:#3b5998;color:#fff;border:0;padding:6px;font-size:14px;cursor:pointer;border-radius:3px}
+.link{color:#3b5998;cursor:pointer}
+.meta{font-size:12px;color:#555}
+.like{font-size:12px;color:#3b5998;cursor:pointer}
+.cmt{font-size:13px;border-top:1px dotted #ccc;margin-top:6px;padding-top:6px}
+.profile-img{width:60px;height:60px;border-radius:50%;background:#ccc;display:inline-block;vertical-align:middle;margin-right:6px;}
+</style>
+</head>
+<body>
+
+<header>
+  FaceHumain 2005 - V0.1
+  <input id="search" placeholder="Rechercher...">
+  <div class="nav-icons">
+    <span onclick="showFeed()">Accueil</span>
+    <span onclick="showProfile(profile.username)">Profil</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="left" id="leftColumn">
+    <div class="box" id="loginBox">
+      <b>Création de compte</b><br>
+      <input id="loginName" class="input" placeholder="Pseudo">
+      <input id="loginBirth" type="date" class="input" placeholder="Date de naissance">
+      <input id="loginCity" class="input" placeholder="Ville">
+      <input id="loginJob" class="input" placeholder="Profession">
+      <button class="btn" onclick="login()">Entrer</button>
+    </div>
+  </div>
+
+  <div class="center" id="main"></div>
+</div>
+
+<script>
+// ===== DONNÉES PROPRES AU DÉPART =====
+let posts = [];      // aucun post
+let profile = {};    // aucun compte
+
+// ===== Connexion persistante (vide au départ) =====
+window.onload = function(){
+  // Reset automatique pour s'assurer que tout est vide
+  localStorage.removeItem("posts");
+  localStorage.removeItem("profile");
+  showLogin();
+}
+
+// ===== Connexion =====
+function login(){
+ profile = {
+   username: document.getElementById("loginName").value || "Humain",
+   birth: document.getElementById("loginBirth").value,
+   city: document.getElementById("loginCity").value || "Inconnu",
+   job: document.getElementById("loginJob").value || "Inconnu"
+ };
+ localStorage.setItem("profile", JSON.stringify(profile));
+ showFeed();
+}
+
+// ===== Afficher login =====
+function showLogin(){
+ document.getElementById("loginBox").style.display = "block";
+ document.getElementById("main").innerHTML = "";
+ posts = [];
+ profile = {};
+ localStorage.removeItem("posts");
+ localStorage.removeItem("profile");
+}
+
+// ===== Feed =====
+function showFeed(){
+ document.getElementById("loginBox").style.display = "none";
+ const main = document.getElementById("main");
+ main.innerHTML = `
+ <div class="box">
+   <textarea id="postText" class="input" placeholder="Quoi de neuf ?"></textarea>
+   <button class="btn" onclick="addPost()">Publier</button>
+ </div>
+ ${posts.map((p,i)=>renderPost(p,i)).join("")}`;
+}
+
+function renderPost(p,i){
+ return `
+ <div class="box">
+  <div class="profile-img"></div>
+  <b class="link" onclick="showProfile('${p.user}')">${p.user}</b>
+  <span class="meta"> (${p.date})</span>
+  <p>${p.text}</p>
+  <span class="like" onclick="like(${i})">J’aime (${p.likes})</span>
+  <div class="cmt">
+    ${p.comments.map(c=>`<div><b>${c.user}:</b> ${c.text}</div>`).join("")}
+    <input class="input" id="c${i}" placeholder="Commenter...">
+    <button class="btn" onclick="addComment(${i})">OK</button>
+  </div>
+ </div>`;
+}
+
+// ===== Actions utilisateur =====
+function addPost(){
+ const txt = document.getElementById("postText").value;
+ if(!txt) return;
+ posts.unshift({user:profile.username,text:txt,date:new Date().toLocaleDateString(),likes:0,comments:[]});
+ save();
+ showFeed();
+}
+
+function addComment(i){
+ const t = document.getElementById("c"+i).value;
+ if(!t) return;
+ posts[i].comments.push({user:profile.username,text:t});
+ save();
+ showFeed();
+}
+
+function like(i){
+ posts[i].likes++;
+ save();
+ showFeed();
+}
+
+// ===== Profil simple =====
+function showProfile(name){
+ const userPosts = posts.filter(p=>p.user===name);
+ const main = document.getElementById("main");
+ const userProfile = (name===profile.username)? profile : {username:name, birth:"-", city:"-", job:"-"};
+ main.innerHTML = `
+ <div class="box">
+   <div class="profile-img"></div>
+   <b>${userProfile.username}</b><br>
+   Date de naissance: ${userProfile.birth}<br>
+   Ville: ${userProfile.city}<br>
+   Profession: ${userProfile.job}
+ </div>
+ <div class="box"><b>Posts de ${name}</b></div>
+ ${userPosts.map((p,i)=>renderPost(p,i)).join("")}`;
+}
+
+// ===== Stockage =====
+function save(){
+ localStorage.setItem("posts", JSON.stringify(posts));
+ localStorage.setItem("profile", JSON.stringify(profile));
+}
+
+// ===== Recherche simple =====
+document.getElementById("search").oninput=function(){ showFeed(); };
+</script>
+</body>
+</html>
